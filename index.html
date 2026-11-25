@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>¿Qué gráfico usarías?</title>
+<style>
+:root{--bg:#fff;--ink:#111;--mut:#5f5f5f;--card:#f2f2f2;--red:#c8102e;--line:#d9d9d9;color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#111;--ink:#fff;--mut:#b5b5b5;--card:#1e1e1e;--red:#ef4660;--line:#3a3a3a;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#111;--ink:#fff;--mut:#b5b5b5;--card:#1e1e1e;--red:#ef4660;--line:#3a3a3a;color-scheme:dark}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*,*::before,*::after{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:Calibri,"Segoe UI",system-ui,sans-serif;line-height:1.4}
+main{max-width:760px;margin:0 auto;padding:28px 20px 40px}
+.top{display:flex;align-items:center;gap:12px;margin-bottom:6px}
+.top::before{content:"";width:8px;height:34px;background:var(--red);flex:none}
+h1{font-size:26px;margin:0}
+.sub{color:var(--mut);margin:0 0 22px}
+.step{color:var(--mut);font-size:14px;margin-bottom:6px}
+.prog{height:4px;background:var(--line);margin-bottom:18px}
+.prog span{display:block;height:100%;background:var(--red);transition:width .3s}
+h2{font-size:22px;line-height:1.25;margin:0 0 18px;max-width:34ch}
+.opts{display:grid;grid-template-columns:repeat(5,1fr);gap:10px}
+.opt{position:relative;background:var(--card);color:var(--ink);border:2px solid transparent;padding:8px 6px 10px;font:inherit;font-size:14px;font-weight:600;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:4px}
+.opt svg{width:100%;height:auto}
+.opt:not(:disabled):hover{border-color:var(--ink)}
+.opt:focus-visible,.next:focus-visible{outline:3px solid var(--red);outline-offset:2px}
+.opt:disabled{cursor:default}
+.opt.off{opacity:.45}
+.opt.ok{opacity:1;border-color:var(--ink)}
+.opt.no{opacity:1;border-color:var(--red)}
+.opt.ok::after,.opt.no::after{position:absolute;top:4px;right:6px;font-size:16px;font-weight:700}
+.opt.ok::after{content:"✓";color:var(--ink)}
+.opt.no::after{content:"✗";color:var(--red)}
+.fb{display:grid;grid-template-columns:minmax(0,230px) 1fr;gap:18px;align-items:center;margin-top:20px;padding:16px;background:var(--card);border-left:6px solid var(--ink)}
+.fb.b{border-left-color:var(--red)}
+.fb strong{display:block;font-size:19px;margin-bottom:4px}
+.fb.b strong{color:var(--red)}
+.fb p{margin:0;color:var(--mut)}
+.next{margin-top:18px;background:var(--ink);color:var(--bg);border:0;padding:12px 26px;font:inherit;font-size:16px;font-weight:700;cursor:pointer}
+.score{font-size:64px;font-weight:800;color:var(--red);line-height:1;margin:10px 0}
+.legend{margin-top:30px;color:var(--mut);font-size:13px}
+.ln{fill:none;stroke:var(--red);stroke-width:3}.dot{fill:var(--red)}
+.bk{fill:var(--ink)}.rd{fill:var(--red)}.ax{stroke:var(--mut);stroke-width:1}
+.tr{stroke:var(--red);stroke-width:2;stroke-dasharray:5 4}.sc{fill:var(--ink)}
+.t{fill:var(--mut);font-size:9px}.big{fill:var(--red);font-weight:800}
+.dn{fill:none;stroke-width:22}.c0{stroke:var(--red)}.c1{stroke:var(--ink)}.c2{stroke:#777}.c3{stroke:#aaa}
+@media (max-width:560px){.opts{grid-template-columns:repeat(3,1fr)}.fb{grid-template-columns:1fr}h2{font-size:20px}}
+</style>
+</head>
+<body>
+<main>
+  <div class="top"><h1>¿Qué gráfico usarías?</h1></div>
+  <p class="sub">Elige el gráfico que mejor responde a cada pregunta de RRHH.</p>
+  <div id="app"></div>
+  <p class="legend">Negro: acierto. Rojo: conviene revisar. Datos ficticios.</p>
+</main>
+<script>
+var T=[["line","Líneas"],["bar","Barras"],["donut","Anillo"],["scatter","Dispersión"],["kpi","Tarjeta"]];
+var Q=[
+{q:"¿La rotación de los últimos 6 meses sube o baja?",a:"line",w:"Una línea une los meses en orden y deja ver la tendencia de un vistazo."},
+{q:"¿Qué departamento tiene más absentismo?",a:"bar",w:"Las barras comparan categorías y la más alta se ve al instante."},
+{q:"¿Qué parte de las salidas se debe a cada motivo?",a:"donut",w:"El anillo muestra cómo se reparte un total entre pocas categorías."},
+{q:"¿Las personas con más antigüedad están más satisfechas?",a:"scatter",w:"La dispersión cruza dos números y revela si existe relación entre ellos."},
+{q:"¿Cuál es la rotación anual de toda la empresa?",a:"kpi",w:"Una sola cifra clave se muestra grande, en una tarjeta."}
+];
+var i=0,score=0,done=false,pick=null;
+function chart(t,big){
+  var L=function(x,y,s){return big?'': '<text class="t" x="'+x+'" y="'+y+'" text-anchor="middle">'+s+'</text>'};
+  var ax='<line class="ax" x1="10" y1="100" x2="190" y2="100"/>',h='';
+  if(t==="line"){
+    var v=[1.2,1,1.5,1.1,.9,.8],m=["Jun","Jul","Ago","Sep","Oct","Nov"];
+    var p=v.map(function(y,k){return[24+k*30,95-(y-.5)*60]});
+    h=ax+'<polyline class="ln" points="'+p.map(function(a){return a.join(",")}).join(" ")+'"/>';
+    p.forEach(function(a,k){h+='<circle class="dot" cx="'+a[0]+'" cy="'+a[1]+'" r="3.5"/> '+L(a[0],113,m[k])});
+  }else if(t==="bar"){
+    var d=[18,14,11,8],n=["Ventas","Operac.","TI","Mkt"];
+    h=ax;d.forEach(function(y,k){var x=22+k*44;h+='<rect class="'+(k?"bk":"rd")+'" x="'+x+'" y="'+(100-y*4.4)+'" width="30" height="'+y*4.4+'"/>'+L(x+15,113,n[k])});
+  }else if(t=== "donut"){
+    var s=[35,30,20,15],C=2*Math.PI*38,cum=0;
+    s.forEach(function(x,k){var dl=x/100*C;h+='<circle class="dn c'+k+'" cx="100" cy="58" r="38" stroke-dasharray="'+(dl-1.5)+' '+(C-dl+1.5)+'" stroke-dashoffset="'+(-cum/100*C)+'" transform="rotate(-90 100 58)"/>';cum+=x});
+    h+=big?'<text class="t" x="100" y="61" text-anchor="middle">Motivos</text>':'';
+  }else if(t=== "scatter"){
+    var pts=[[1,2],[2,2.5],[3,2.2],[4,3.4],[5,3.1],[6,4],[7,4.4],[8,4.1],[9,5.2],[10,5.6]];
+    h=ax+'<line class="tr" x1="30" y1="76" x2="182" y2="30"/>';
+    pts.forEach(function(a){h+='<circle class="sc" cx="'+(20+a[0]*16)+'" cy="'+(100-a[1]*14)+'" r="3.5"/>'});
+    h+=L(100,113,"Antigüedad");
+  }else{
+    h='<text class="big" x="100" y="'+(big?70:68)+'" text-anchor="middle" font-size="'+(big?46:36)+'">'+(big?"12,4%":"12%")+'</text>'+(big?'<text class="t" x="100" y="92" text-anchor="middle">Rotación anual</text>':'');
+  }
+  return h;
+}
+function render(){
+  var app=document.getElementById("app");
+  if(i>=Q.length){
+    app.innerHTML='<div class="step">Resultado</div><div class="score">'+score+' de '+Q.length+'</div><p>'+((score>=4)?"Ya eliges los gráficos como un analista de datos.":"Buen comienzo. Repite el juego y compara tus respuestas.")+'</p><button class="next" id="again">Jugar otra vez</button>';
+    document.getElementById("again").onclick=function(){i=0;score=0;render()};
+    return;
+  }
+  var q=Q[i],h='<div class="step">Caso '+(i+1)+' de '+Q.length+'</div><div class="prog"><span style="width:'+((i/Q.length)*100)+'%"></span></div><h2>'+q.q+'</h2><div class="opts">';
+  T.forEach(function(o){
+    var c="opt";
+    if(done){c+=" off";if(o[0]===q.a)c=c.replace(" off"," ok");else if(o[0]===pick)c=c.replace(" off"," no")}
+    h+='<button class="'+c+'" data-k="'+o[0]+'"'+(done?" disabled":"")+'><svg viewBox="0 0 200 120" aria-hidden="true">'+chart(o[0],false)+'</svg><span>'+o[1]+'</span></button>';
+  });
+  h+='</div>';
+  if(done){
+    var good=pick===q.a,nm=T.filter(function(o){return o[0]===q.a})[0][1];
+    h+='<div class="fb '+(good?"g":"b")+'" role="status"><svg viewBox="0 0 200 120" aria-hidden="true">'+chart(q.a,true)+'</svg><div><strong>'+((good)?"Correcto":"Casi. Aquí va mejor: "+nm)+'</strong><p>'+q.w+'</p></div></div><button class="next" id="nx">'+((i<Q.length-1)?"Siguiente":"Ver resultado")+'</button>';
+  }
+  app.innerHTML=h;
+  Array.prototype.forEach.call(app.querySelectorAll(".opt"),function(b){b.onclick=function(){if(done)return;pick=b.getAttribute("data-k");done=true;if(pick===q.a)score++;render()}});
+  if(done)document.getElementById("nx").onclick=function(){i++;done=false;pick=null;render()};
+}
+render();
+</script>
+</body>
+</html>
